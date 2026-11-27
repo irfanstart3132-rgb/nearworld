@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f7b5f"><title>Nearworld</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#14231c;--mu:#66756d;--ac:#0f7b5f;--ac2:#e3f3ec;--bd:#e2e7e3;--or:#c2410c;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1713;--card:#18231e;--tx:#e8f0ec;--mu:#92a39a;--ac:#34c79a;--ac2:#1b2e27;--bd:#263630;--or:#fb923c;color-scheme:dark}}
+html,body{height:100%;margin:0}*{box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+header{padding:14px 16px 8px}h1{margin:0;font-size:22px;letter-spacing:-.5px}h1 span{color:var(--ac)}
+.loc{display:flex;gap:8px;align-items:center;color:var(--mu);font-size:13px;margin-top:2px}
+main{flex:1;overflow-y:auto;padding:0 16px 16px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;margin:4px 0}
+label{font-size:12px;color:var(--mu);display:block;margin-top:8px}
+button{font:inherit;border:0;border-radius:12px;padding:10px 14px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
+button.g{background:var(--ac2);color:var(--ac)}button.sm{padding:6px 10px;font-size:13px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:6px 0}.chip{white-space:nowrap;padding:6px 12px;border-radius:99px;background:var(--card);border:1px solid var(--bd);color:var(--tx);font-weight:500}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{display:flex;gap:12px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin:8px 0}
+.ic{width:56px;height:56px;border-radius:14px;background:var(--ac2);display:grid;place-items:center;font-size:28px;flex:none}
+.b{flex:1;min-width:0}.t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m{color:var(--mu);font-size:12.5px;margin-top:2px}.p{font-weight:700}.free{color:var(--or)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+nav{display:flex;border-top:1px solid var(--bd);background:var(--card);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;color:var(--mu);border-radius:0;padding:12px 0}nav button.on{color:var(--ac)}
+.sheet{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;z-index:9}.sheet.on{display:flex}
+.sheet>div{background:var(--card);width:100%;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:99px;opacity:0;transition:.25s;pointer-events:none;z-index:10}#toast.on{opacity:1}
+.empty{text-align:center;color:var(--mu);padding:40px 10px}.v{display:none}.v.on{display:block}
+</style></head><body>
+<header><h1>Near<span>world</span></h1>
+<div class="loc"><span id="loc">📍 Locating…</span><button class="g sm" id="gps">Use my location</button></div></header>
+<main>
+<section id="v-near" class="v on">
+<input id="q" type="search" placeholder="Search books, bikes, furniture…">
+<div class="chips" id="chips"></div>
+<label>Search radius: <b id="rv">5 km</b></label><input id="rad" type="range" min="1" max="25" value="5">
+<div id="list"></div></section>
+<section id="v-post" class="v"><h3>Post an item</h3>
+<label>Title</label><input id="pt" placeholder="e.g. Physics 12th class book">
+<label>Category</label><select id="pc"></select>
+<label>Type</label><select id="pk"><option value="sell">Sell</option><option value="donate">Donate (free)</option></select>
+<label>Price (Rs)</label><input id="pp" type="number" min="0" placeholder="0">
+<label>Condition</label><select id="pd"><option>Like new</option><option selected>Good</option><option>Fair</option></select>
+<p class="m">Your exact spot stays private: neighbours only see an approximate location (about 150 m).</p>
+<button id="pb" style="width:100%">Publish to my neighbourhood</button></section>
+<section id="v-mine" class="v"><h3>My profile</h3><label>Display name</label><input id="nm" placeholder="Your name">
+<h3>My listings</h3><div id="ml"></div><h3>Requests I sent</h3><div id="mr"></div></section>
+</main>
+<nav><button data-t="near" class="on">🔎<br>Nearby</button><button data-t="post">➕<br>Post</button><button data-t="mine">👤<br>Mine</button></nav>
+<div class="sheet" id="sh"><div><h3 id="sht" style="margin:0 0 4px"></h3><p class="m" id="shm"></p>
+<textarea id="smsg" rows="3" placeholder="Message to the owner (pickup time, questions…)"></textarea>
+<div class="row"><button class="g" id="sx">Cancel</button><button id="ss">Send request</button></div></div></div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),CATS=["Books","Electronics","Furniture","Clothes","Kitchen","Toys","Other"],EM={Books:"📚",Electronics:"🔌",Furniture:"🪑",Clothes:"👕",Kitchen:"🍳",Toys:"🧸",Other:"📦"};
+const S={get(k,d){try{const v=localStorage.getItem("nw:"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("nw:"+k,JSON.stringify(v))}catch(e){}}};
+let pos=S.get("pos",{lat:33.6844,lng:73.0479,set:0}),items=S.get("items",[]),reqs=S.get("reqs",[]),me=S.get("me","You"),cat="All",open=null,timer;
+const SEEDS=[["Atomic Habits (paperback)","Books",450,"sell","Like new"],["Calculus: Early Transcendentals","Books",0,"donate","Good"],["O-Level Physics set (3 books)","Books",900,"sell","Good"],["Wooden study table","Furniture",4500,"sell","Fair"],["Kids story books bundle","Books",0,"donate","Good"],["Casio fx-991 calculator","Electronics",1800,"sell","Good"],["Winter jacket (M)","Clothes",1500,"sell","Like new"],["Pressure cooker 5L","Kitchen",2200,"sell","Good"],["Classic Lego box","Toys",0,"donate","Fair"],["Engineering Mechanics (Hibbeler)","Books",1200,"sell","Good"],["LED desk lamp","Electronics",700,"sell","Good"],["Urdu novels collection","Books",600,"sell","Good"]],NAMES=["Ayesha","Bilal","Hira","Usman","Sana","Hamza","Zara","Talha"];
+function seed(){return SEEDS.map((s,i)=>{const a=Math.random()*6.283,r=.3+Math.random()*7,d=r/111;return{id:"s"+Date.now()+i,title:s[0],cat:s[1],price:s[2],type:s[3],cond:s[4],lat:pos.lat+Math.sin(a)*d,lng:pos.lng+Math.cos(a)*d/Math.cos(pos.lat*Math.PI/180),seller:NAMES[i%8],rating:3.8+Math.random()*1.2,t:Date.now()-Math.random()*5*864e5,seed:1,status:"active"}})}
+function km(a,b){const R=6371,r=Math.PI/180,dl=(b.lat-a.lat)*r,dg=(b.lng-a.lng)*r,x=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+/* Ranking: Uber-style proximity decay + freshness + text relevance + donation boost + seller trust */
+function rank(){const rad=+$("#rad").value,q=$("#q").value.trim().toLowerCase(),now=Date.now(),out=[];
+for(const it of items){if(it.status!=="active"||(cat==="Free"?it.type!=="donate":cat!=="All"&&it.cat!==cat))continue;
+const d=km(pos,it);if(d>rad)continue;const hay=(it.title+" "+it.cat).toLowerCase();if(q&&!q.split(/\s+/).every(w=>hay.includes(w)))continue;
+const s=.45*Math.exp(-d/(rad/2.5))+.2*Math.exp(-(now-it.t)/2592e5)+.15*(q&&hay.startsWith(q)?1:.5)+.1*(it.type==="donate"?1:0)+.1*it.rating/5;out.push({it,d,s})}
+return out.sort((a,b)=>b.s-a.s)}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dist=d=>d<1?Math.max(50,Math.round(d*100)*10)+" m":d.toFixed(1)+" km",walk=d=>Math.max(1,Math.round(d*12))+" min walk";
+const ago=t=>{const h=(Date.now()-t)/36e5;return h<1?"just now":h<24?Math.floor(h)+"h ago":Math.floor(h/24)+"d ago"};
+function render(){const r=rank();$("#list").innerHTML=r.length?r.map(({it,d})=>`<div class="card"><div class="ic">${EM[it.cat]}</div><div class="b"><div class="t">${esc(it.title)}</div>
+<div class="m">${dist(d)} · ${walk(d)} · ${esc(it.cond)} · ${ago(it.t)}</div><div class="m">${esc(it.seller)} ★ ${it.rating.toFixed(1)}</div>
+<div class="row"><span class="p ${it.type==="donate"?"free":""}">${it.type==="donate"?"Free · Donation":"Rs "+it.price.toLocaleString()}</span><button class="sm" data-r="${it.id}">${it.type==="donate"?"Claim":"Request"}</button></div></div></div>`).join(""):'<div class="empty">Nothing within this radius yet.<br>Try a larger radius or post the first item!</div>'}
+function mine(){const m=items.filter(i=>!i.seed&&i.status!=="deleted");$("#ml").innerHTML=m.length?m.map(i=>`<div class="card"><div class="ic">${EM[i.cat]}</div><div class="b"><div class="t">${esc(i.title)}</div><div class="m">${i.status==="active"?"Active":i.type==="donate"?"Donated":"Sold"}</div>
+<div class="row">${i.status==="active"?`<button class="g sm" data-d="${i.id}">Mark ${i.type==="donate"?"donated":"sold"}</button>`:"<span></span>"}<button class="g sm" data-x="${i.id}">Delete</button></div></div></div>`).join(""):'<p class="m">No listings yet.</p>';
+$("#mr").innerHTML=reqs.length?reqs.map(r=>{const i=items.find(x=>x.id===r.id);return`<div class="card"><div class="b"><div class="t">${esc(i?i.title:"Item")}</div><div class="m">To ${esc(i?i.seller:"owner")} · ${ago(r.t)} · Pending</div><div class="m">${esc(r.msg)}</div></div></div>`}).join(""):'<p class="m">No requests yet.</p>'}
+function save(){S.set("items",items);S.set("reqs",reqs)}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(timer);timer=setTimeout(()=>t.classList.remove("on"),2200)}
+function setLoc(){$("#loc").textContent=pos.set?"📍 Your location":"📍 Islamabad (demo area)"}
+function reseed(){items=items.filter(i=>!i.seed).concat(seed());save();render();setLoc()}
+function tab(t){document.querySelectorAll(".v").forEach(v=>v.classList.toggle("on",v.id==="v-"+t));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));if(t==="mine")mine()}
+$("#chips").innerHTML=["All","Free",...CATS].map(c=>`<button class="chip ${c==="All"?"on":""}" data-c="${c}">${c==="Free"?"🎁 Free":c}</button>`).join("");
+$("#pc").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");$("#nm").value=me==="You"?"":me;
+$("#chips").onclick=e=>{const c=e.target.dataset.c;if(!c)return;cat=c;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.dataset.c===c));render()};
+let db;$("#q").oninput=()=>{clearTimeout(db);db=setTimeout(render,150)};
+$("#rad").oninput=e=>{$("#rv").textContent=e.target.value+" km";render()};
+document.querySelector("nav").onclick=e=>{const b=e.target.closest("button");if(b)tab(b.dataset.t)};
+$("#list").onclick=e=>{const id=e.target.dataset.r;if(!id)return;open=items.find(i=>i.id===id);$("#sht").textContent=(open.type==="donate"?"Claim: ":"Request: ")+open.title;$("#shm").textContent="Owner: "+open.seller+" · "+dist(km(pos,open))+" away";$("#smsg").value="";$("#sh").classList.add("on")};
+$("#sx").onclick=()=>$("#sh").classList.remove("on");
+$("#ss").onclick=()=>{reqs.unshift({id:open.id,msg:$("#smsg").value.trim()||"Hi, is this still available?",t:Date.now()});save();$("#sh").classList.remove("on");toast("Request sent to "+open.seller)};
+$("#pb").onclick=()=>{const t=$("#pt").value.trim();if(!t)return toast("Please add a title");const k=$("#pk").value,j=()=>(Math.random()-.5)*.0027;
+items.unshift({id:"u"+Date.now(),title:t,cat:$("#pc").value,type:k,price:k==="donate"?0:Math.max(0,+$("#pp").value||0),cond:$("#pd").value,lat:pos.lat+j(),lng:pos.lng+j(),seller:me,rating:5,t:Date.now(),status:"active"});
+save();$("#pt").value="";$("#pp").value="";render();toast("Published!");tab("near")};
+$("#nm").onchange=e=>{me=e.target.value.trim()||"You";S.set("me",me)};
+$("#ml").onclick=e=>{const d=e.target.dataset.d,x=e.target.dataset.x,i=items.find(i=>i.id===(d||x));if(!i)return;if(d)i.status="done";else items=items.filter(z=>z!==i);save();mine();render()};
+$("#gps").onclick=()=>{if(!navigator.geolocation)return toast("Location not available");toast("Finding you…");
+navigator.geolocation.getCurrentPosition(p=>{pos={lat:p.coords.latitude,lng:p.coords.longitude,set:1};S.set("pos",pos);reseed();toast("Location updated")},()=>toast("Location blocked. Showing demo area."),{enableHighAccuracy:true,timeout:10000,maximumAge:6e4})};
+if(!items.some(i=>i.seed))items=items.concat(seed());save();setLoc();render();
+</script></body></html>
